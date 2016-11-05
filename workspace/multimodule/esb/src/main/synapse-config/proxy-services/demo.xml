@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="demo" startOnLoad="true" trace="disable"
+  transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+  <target>
+    <inSequence>
+      <property expression="json-eval($.response.pilot-hours)"
+        name="pilot-hours" scope="default" type="STRING"/>
+      <property expression="json-eval($.response.sector)" name="sector"
+        scope="default" type="STRING"/>
+      <clone sequential="true">
+        <target>
+          <sequence>
+            <sequence key="pilot"/>
+          </sequence>
+        </target>
+        <target>
+          <sequence>
+            <sequence key="airplane"/>
+          </sequence>
+        </target>
+      </clone>
+    </inSequence>
+    <outSequence>
+      <aggregate>
+        <completeCondition>
+          <messageCount max="-1" min="-1"/>
+        </completeCondition>
+        <onComplete expression="/"
+          xmlns:n="http://www.wso2.org/brs/sample/"
+          xmlns:ns3="http://org.apache.synapse/xsd" xmlns:soapenv="http://www.w3.org/2003/05/soap-envelope">
+          <enrich>
+            <source clone="true" xpath="$body/FilteredPilots/*"/>
+            <target property="Result" type="property"/>
+          </enrich>
+          <enrich>
+            <source clone="true" xpath="$body/soapenv:Envelope/soapenv:Body/FilteredAirlines/*"/>
+            <target property="Result2" type="property"/>
+          </enrich>
+          <enrich>
+            <source clone="true" type="inline">
+              <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                <soapenv:Header/>
+                <soapenv:Body>
+                  <n:response>
+                    <n:pilots/>
+                    <n:airlines/>
+                  </n:response>
+                </soapenv:Body>
+              </soapenv:Envelope>
+            </source>
+            <target type="envelope"/>
+          </enrich>
+          <enrich>
+            <source clone="true" property="Result" type="property"/>
+            <target action="child" xpath="//n:response/n:pilots"/>
+          </enrich>
+          <enrich>
+            <source clone="true" property="Result2" type="property"/>
+            <target action="child" xpath="//n:response/n:airlines"/>
+          </enrich>
+          <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+          <call blocking="true">
+            <endpoint>
+              <address trace="disable" uri="http://localhost:8080/sample/ms"/>
+            </endpoint>
+          </call>
+          <respond/>
+        </onComplete>
+      </aggregate>
+    </outSequence>
+    <faultSequence/>
+  </target>
+</proxy>

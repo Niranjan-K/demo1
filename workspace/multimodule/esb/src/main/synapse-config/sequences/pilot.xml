@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="pilot" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+  <payloadFactory media-type="xml">
+    <format>
+      <p:all xmlns:p="http://ws.wso2.org/dataservice"/>
+    </format>
+    <args/>
+  </payloadFactory>
+  <call blocking="true">
+    <endpoint>
+      <address format="soap12" trace="disable" uri="http://localhost:9765/services/pilots/"/>
+    </endpoint>
+  </call>
+  <property expression="$body/*[1]" name="payload" scope="default"
+    type="OM" xmlns:ns="http://org.apache.synapse/xsd"/>
+  <payloadFactory media-type="xml">
+    <format>
+      <wrapper xmlns="http://ws.wso2.org/dataservice"/>
+    </format>
+    <args/>
+  </payloadFactory>
+  <enrich>
+    <source clone="true" property="payload" type="property"/>
+    <target action="child" xmlns:ns="http://org.apache.synapse/xsd"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="$body/p:wrapper"/>
+  </enrich>
+  <enrich>
+    <source clone="true" type="inline">
+      <parameters xmlns="http://ws.wso2.org/dataservice">
+        <hours/>
+      </parameters>
+    </source>
+    <target action="child" xmlns:ns="http://org.apache.synapse/xsd"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper"/>
+  </enrich>
+  <enrich>
+    <source clone="true" property="pilot-hours" type="property"/>
+    <target xmlns:ns="http://org.apache.synapse/xsd"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper/p:parameters/p:hours"/>
+  </enrich>
+  <brs:rule xmlns:brs="http://wso2.org/carbon/rules">
+    <brs:source>soapBody</brs:source>
+    <brs:target action="replace" resultXpath="//FilteredPilots"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper">soapBody</brs:target>
+    <brs:ruleSet>
+      <brs:properties/>
+      <brs:rule resourceType="regular" sourceType="inline"><![CDATA[
+                 package Demo;
+                 import org.wso2.nira.demo1.pilots.Entry;
+                 import org.wso2.nira.demo1.pilots.Entries;
+                 import org.wso2.nira.demo1.pilots.Parameters;
+
+                 rule FilterPilots
+                 when
+                   entry: Entry()
+                   entries: Entries()
+                   parameters: Parameters()
+                 then
+                   if ((entries.isAboveRange(entry, parameters.getHours()))) {
+                     retract(entry);
+                   }
+                 end
+         ]]></brs:rule>
+    </brs:ruleSet>
+    <brs:input namespace="http://ws.wso2.org/dataservice" wrapperElementName="wrapper">
+      <brs:fact elementName="Entry"
+        namespace="http://ws.wso2.org/dataservice"
+        type="org.wso2.nira.demo1.pilots.Entry"
+        xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper/p:Entries/p:Entry"/>
+      <brs:fact elementName="Entries"
+        namespace="http://ws.wso2.org/dataservice"
+        type="org.wso2.nira.demo1.pilots.Entries"
+        xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper/p:Entries"/>
+      <brs:fact elementName="parameters"
+        namespace="http://ws.wso2.org/dataservice"
+        type="org.wso2.nira.demo1.pilots.Parameters"
+        xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper/p:parameters"/>
+    </brs:input>
+    <brs:output wrapperElementName="FilteredPilots">
+      <brs:fact elementName="Entry" type="org.wso2.nira.demo1.pilots.Entry"/>
+    </brs:output>
+  </brs:rule>
+  <loopback/>
+</sequence>

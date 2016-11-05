@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?><artifacts>
+    <artifact name="demo" groupId="org.wso2.nira.demo1.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/demo.xml</file>
+    </artifact>
+    <artifact name="pilot" groupId="org.wso2.nira.demo1.sequence" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/sequences/pilot.xml</file>
+    </artifact>
+    <artifact name="airplane" groupId="org.wso2.nira.demo1.sequence" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/sequences/airplane.xml</file>
+    </artifact>
+</artifacts>

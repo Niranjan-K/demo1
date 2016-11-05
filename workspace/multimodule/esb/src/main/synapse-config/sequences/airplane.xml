@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="airplane" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+  <payloadFactory media-type="xml">
+    <format>
+      <p:all xmlns:p="http://ws.wso2.org/dataservice"/>
+    </format>
+    <args/>
+  </payloadFactory>
+  <call blocking="true">
+    <endpoint>
+      <address format="soap12" trace="disable" uri="http://localhost:9765/services/airplanes/"/>
+    </endpoint>
+  </call>
+  <property expression="$body/*[1]" name="payload" scope="default"
+    type="OM" xmlns:ns="http://org.apache.synapse/xsd"/>
+  <payloadFactory media-type="xml">
+    <format>
+      <wrapper xmlns="http://ws.wso2.org/dataservice"/>
+    </format>
+    <args/>
+  </payloadFactory>
+  <enrich>
+    <source clone="true" property="payload" type="property"/>
+    <target action="child" xmlns:ns="http://org.apache.synapse/xsd"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="$body/p:wrapper"/>
+  </enrich>
+  <enrich>
+    <source clone="true" type="inline">
+      <parameters xmlns="http://ws.wso2.org/dataservice">
+        <sector/>
+      </parameters>
+    </source>
+    <target action="child" xmlns:ns="http://org.apache.synapse/xsd"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper"/>
+  </enrich>
+  <enrich>
+    <source clone="true" property="sector" type="property"/>
+    <target xmlns:ns="http://org.apache.synapse/xsd"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper/p:parameters/p:sector"/>
+  </enrich>
+  <brs:rule xmlns:brs="http://wso2.org/carbon/rules">
+    <brs:source>soapBody</brs:source>
+    <brs:target action="replace" resultXpath="//FilteredAirlines"
+      xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper">soapBody</brs:target>
+    <brs:ruleSet>
+      <brs:properties/>
+      <brs:rule resourceType="regular" sourceType="inline"><![CDATA[
+                 package Demo;
+                 import org.wso2.nira.demo1.airplanes.Entry;
+                 import org.wso2.nira.demo1.airplanes.Entries;
+                 import org.wso2.nira.demo1.airplanes.Parameters;
+
+                 rule FilterAirlines
+                 when
+                   entry: Entry()
+                   entries: Entries()
+                   parameters: Parameters()
+                   eval( entry.getSector() != parameters.getSector() )
+                 then
+                   retract(entry);
+                 end
+         ]]></brs:rule>
+    </brs:ruleSet>
+    <brs:input namespace="http://ws.wso2.org/dataservice" wrapperElementName="wrapper">
+      <brs:fact elementName="Entry"
+        namespace="http://ws.wso2.org/dataservice"
+        type="org.wso2.nira.demo1.airplanes.Entry"
+        xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:Entries/p:Entry"/>
+      <brs:fact elementName="Entries"
+        namespace="http://ws.wso2.org/dataservice"
+        type="org.wso2.nira.demo1.airplanes.Entries"
+        xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:Entries"/>
+      <brs:fact elementName="parameters"
+        namespace="http://ws.wso2.org/dataservice"
+        type="org.wso2.nira.demo1.airplanes.Parameters"
+        xmlns:p="http://ws.wso2.org/dataservice" xpath="//p:wrapper/p:parameters"/>
+    </brs:input>
+    <brs:output wrapperElementName="FilteredAirlines">
+      <brs:fact elementName="Entry" type="org.wso2.nira.demo1.airplanes.Entry"/>
+    </brs:output>
+  </brs:rule>
+  <loopback/>
+</sequence>

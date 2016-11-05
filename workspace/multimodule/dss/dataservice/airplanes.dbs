@@ -1,0 +1,23 @@
+<data name="airplanes" serviceGroup="" serviceNamespace="">
+    <description/>
+    <config id="demodb">
+        <property name="org.wso2.ws.dataservice.user">root</property>
+        <property name="org.wso2.ws.dataservice.password">root</property>
+        <property name="org.wso2.ws.dataservice.protocol">jdbc:mysql://localhost:3306/demodb</property>
+        <property name="org.wso2.ws.dataservice.driver">com.mysql.jdbc.Driver</property>
+    </config>
+    <query id="getall" useConfig="demodb">
+        <sql>SELECT * FROM airplanes;</sql>
+        <result element="Entries" rowName="Entry">
+            <element column="id" name="id" xsdType="integer"/>
+            <element column="flight_code" name="flight_code" xsdType="string"/>
+            <element column="sector" name="sector" xsdType="integer"/>
+        </result>
+    </query>
+    <operation name="all">
+        <call-query href="getall"/>
+    </operation>
+    <resource method="GET" path="all">
+        <call-query href="getall"/>
+    </resource>
+</data>
